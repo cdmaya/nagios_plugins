@@ -1,4 +1,4 @@
-# Cyberpower POWERPANEL software has to be installed on the linux machine and the UPS connected thorugh USB for this to work.
+# Cyberpower POWERPANEL software has to be installed on the linux machine and the UPS connected through USB for this to work.
 # The script uses 'pwrstat -status' utility
 
 #!/bin/bash
