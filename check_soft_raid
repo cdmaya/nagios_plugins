@@ -1,0 +1,62 @@
+# checks the status of a software raid array in debian distros.
+# uses the mdadm command
+# use example ./check_soft_raid -r /dev/md0 -n 2
+
+#!/bin/bash
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+STATE_DEPENDENT=4
+BLANK=""
+usage1="Usage: $0 -r <raidpath_for_mdadm> -n <no_of_drives_in_raid>"
+exitstatus=$STATE_WARNING #default
+while test -n "$1"; do
+    case "$1" in
+        -r)
+            raid=$2
+            shift
+            ;;
+        -n)
+	    ndrives=$2
+	    shift
+	    ;;
+         *)
+            echo "Unknown argument: $1"
+            echo $usage1;
+            echo
+            exit $STATE_UNKNOWN
+            ;;
+    esac
+    shift
+done
+
+valuef=`sudo mdadm --detail $raid | grep "Failed Devices : " | awk '{print $4}'`
+valuea=`sudo mdadm --detail $raid | grep "Active Devices : " | awk '{print $4}'`
+
+#conversion to integer
+valuef=${valuef/\.*}
+valuea=${valuea/\.*}
+ndrives=${ndrives/\.*}
+
+# if # of failed drives is more than 1
+if [[ $valuef -gt 0 ]]; then
+        echo $raid CRITICAL - $valuef "drive(s) Failed"
+        exit $STATE_CRITICAL;
+fi
+
+# if # of active drives is less than the drives in raid
+if [[ $valuea -lt $ndrives ]]; then
+        echo $raid WARNING - only $valuea of $ndrives "drive(s) Active"
+        exit $STATE_WARNING;
+fi
+
+# actives drives = # of drives and failed drives = 0
+if [[ $valuea == $ndrives ]] && [[ $valuef == 0 ]]; then
+        echo $raid OK - $valuea of $ndrives "drive(s) Active"
+        exit $STATE_OK;
+fi
+
+echo $raid UNKNOWN - Active=$valuea,Failed=$valuef
+exit $STATE_UNKNOWN;
+
