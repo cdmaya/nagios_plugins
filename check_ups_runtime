@@ -1,0 +1,64 @@
+# Cyberpower POWERPANEL software has to be installed on the linux machine and the UPS connected through USB for this to work.
+# The script uses 'pwrstat -status' utility
+
+#!/bin/bash
+STATE_OK=0
+STATE_WARNING=1
+STATE_CRITICAL=2
+STATE_UNKNOWN=3
+STATE_DEPENDENT=4
+BLANK=""
+usage1="Usage: $0 -w <warn> -c <crit>"
+exitstatus=$STATE_WARNING #default
+while test -n "$1"; do
+    case "$1" in
+        -c)
+            crit=$2
+            shift
+            ;;
+        -w)
+            warn=$2
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            echo $usage1;
+            echo
+            exit $STATE_UNKNOWN
+            ;;
+    esac
+    shift
+done
+
+value=`sudo pwrstat -status | grep  "Remaining Runtime" | awk '{print $3}'`
+
+#conversion to integer
+value=${value/\.*}
+
+# if blank, warning
+if [[ $value == $blank ]]; then
+        echo UPS WARNING - Remaining Runtime = $value m
+        exit $STATE_WARNING;
+fi
+
+# value>warn
+if [ $value -gt $warn ]; then
+        echo UPS OK - Remaining Runtime = $value m
+        exit $STATE_OK;
+fi
+
+#c<value<=w
+if [ $value -gt $crit ]; then
+        echo UPS WARNING - Remaining Runtime = $value m
+        exit $STATE_WARNING;
+fi
+
+#value<c
+if [ $value -le $crit ]; then
+        echo UPS CRITICAL - Remaining Runtime = $value m
+        exit $STATE_CRITICAL;
+fi
+
+echo UPS UNKNOWN - Remaining Runtime = $value m
+exit $STATE_UNKNOWN;
+
