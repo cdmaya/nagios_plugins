@@ -1,0 +1,111 @@
+# NUT (Network UPS Tools) drivers and NUT server must be installed in the host for this plug-in to work.
+# details : https://networkupstools.org/
+# /home/user/ups/restart_nuts.sh - must restart the NUT drivers and the server (in that order) which will be triggered in case the plug-in is unable to read the values in it's intial try.
+
+
+#!/bin/bash
+STATE_OK=0 
+STATE_WARNING=1 
+STATE_CRITICAL=2 
+STATE_UNKNOWN=3 
+STATE_DEPENDENT=4 
+blank=""
+NUT_RESTART="/home/user/ups/restart_nuts.sh"
+usage1="Usage: $0 -H <host> -u <ups> -w <warn> -c <crit>" 
+exitstatus=$STATE_WARNING #default 
+while test -n "$1"; do
+    case "$1" in
+        -c)
+            crit=$2
+            shift
+            ;;
+        -w)
+            warn=$2
+            shift
+            ;;
+        -u)
+            ups=$2
+            shift
+            ;;
+        -h)
+            echo $usage1;
+            echo 
+            exit $STATE_UNKNOWN
+	    ;;
+	-H)
+            host=$2
+            shift
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            echo $usage1;
+	    echo
+            exit $STATE_UNKNOWN
+            ;;
+    esac
+    shift 
+done 
+
+value=`upsc $ups@$host battery.charge 2>&1 | grep -v '^Init SSL'`
+
+#conversion to integer
+value=${value/\.*}
+
+#if blank, warning
+if [[ $value == $blank ]]; then
+        echo UPS WARNING - Battery Capacity  = $value%	 
+	exit $STATE_WARNING; 
+fi
+
+# value>warn
+if [ $value -gt $warn ]; then
+        echo UPS OK - Battery Capacity  = $value%
+        exit $STATE_OK;
+fi
+
+#c<value<=w
+if [ $value -gt $crit ]; then 
+        echo UPS WARNING - Battery Capacity  = $value%
+	exit $STATE_WARNING; 
+fi
+
+#value<c 
+if [ $value -le $crit ]; then
+        echo UPS CRITICAL - Battery Capacity  = $value% 
+	exit $STATE_CRITICAL; 
+fi
+
+sudo $NUT_RESTART
+
+value=`upsc $ups@$host battery.charge 2>&1 | grep -v '^Init SSL'`
+
+#conversion to integer
+value=${value/\.*}
+
+# if blank, warning
+if [[ $value == $blank ]]; then
+        echo UPS WARNING - Battery Capacity  = $value%
+        exit $STATE_WARNING;
+fi
+
+# value>warn
+if [ $value -lt $warn ]; then
+        echo UPS OK - $ups@$host : Battery Capacity  = $value%
+        exit $STATE_OK;
+fi
+
+#c<value<=w
+if [ $value -lt $crit ]; then
+        echo UPS WARNING - $ups@$host : Battery Capacity  = $value%
+        exit $STATE_WARNING;
+fi
+
+#value<c
+if [ $value -ge $crit ]; then
+        echo UPS CRITICAL - $ups@$host : Battery Capacity  = $value%
+        exit $STATE_CRITICAL;
+fi
+
+echo UPS UNKNOWN - $ups@$host : Battery Capacity  = $value%
+exit $STATE_UNKNOWN;
+
