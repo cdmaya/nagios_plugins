@@ -1,6 +1,6 @@
 # NUT (Network UPS Tools) drivers and NUT server must be installed in the host for this plug-in to work.
 # details : https://networkupstools.org/
-# /home/user/ups/restart_nuts.sh - must restart the NUT drivers and the server (in that order) which will be triggered in case the plug-in is unable to read the values in it's intial try.
+# /home/user/ups/restart_nuts.sh - must restart the NUT drivers and the server (in that order) which will be triggered in case the plug-in is unable to read the values in it's initial try.
 
 
 #!/bin/bash
